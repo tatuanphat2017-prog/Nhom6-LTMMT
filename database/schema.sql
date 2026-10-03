@@ -1,0 +1,11 @@
+-- =============================================================
+-- CSDL cho Chat Nhom - Nhom 06
+-- Nguoi phu trach: NGUYEN DINH QUOC BAO
+--
+-- Yeu cau (khop voi MessageStore cua server):
+--   Users    : luu ten nguoi dung da tung dang nhap
+--   Rooms    : ten phong (duy nhat, khong phan biet hoa thuong), nguoi tao, ngay tao
+--   Messages : phong, nguoi gui, thoi gian, noi dung (NVARCHAR de luu tieng Viet)
+--
+-- TODO (Bao): viet CREATE DATABASE / CREATE TABLE + du lieu mau o day
+-- =============================================================

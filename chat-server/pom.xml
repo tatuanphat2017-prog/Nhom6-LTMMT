@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>vn.hutech.nhom06</groupId>
+        <artifactId>nhom6-ltmmt</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>chat-server</artifactId>
+    <name>chat-server</name>
+
+    <properties>
+        <!-- NetBeans dung thuoc tinh nay khi bam Run -->
+        <exec.mainClass>vn.hutech.nhom06.server.ServerMain</exec.mainClass>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>vn.hutech.nhom06</groupId>
+            <artifactId>chat-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Lang: them driver JDBC SQL Server o day khi lam JdbcMessageStore
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <version>12.8.1.jre11</version>
+        </dependency>
+        -->
+    </dependencies>
+</project>

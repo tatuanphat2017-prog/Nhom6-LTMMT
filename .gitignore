@@ -1,0 +1,18 @@
+# Maven / NetBeans
+target/
+nbproject/private/
+nbactions*.xml
+nb-configuration.xml
+build/
+dist/
+
+# Cau hinh rieng tung may (mat khau CSDL) - KHONG day len GitHub
+db.properties
+
+# IDE khac / he dieu hanh
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
