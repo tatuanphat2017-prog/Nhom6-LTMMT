@@ -22,12 +22,11 @@
             <artifactId>chat-common</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Lang: them driver JDBC SQL Server o day khi lam JdbcMessageStore
+        <!-- Driver JDBC SQL Server (Lang - JdbcMessageStore) -->
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>mssql-jdbc</artifactId>
             <version>12.8.1.jre11</version>
         </dependency>
-        -->
     </dependencies>
 </project>

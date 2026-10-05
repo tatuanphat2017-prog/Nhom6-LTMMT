@@ -7,6 +7,8 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import vn.hutech.nhom06.common.Protocol;
 import vn.hutech.nhom06.server.store.InMemoryMessageStore;
+import vn.hutech.nhom06.server.store.JdbcMessageStore;
+import vn.hutech.nhom06.server.store.MessageStore;
 
 /**
  * Chay server o che do console (chua co giao dien).
@@ -28,7 +30,7 @@ public class ServerMain {
             port = Integer.parseInt(args[0]);
         }
 
-        ChatServer server = new ChatServer(port, new InMemoryMessageStore());
+        ChatServer server = new ChatServer(port, createStore());
         server.addListener(new ServerListener() {
             @Override
             public void onLog(String message) {
@@ -71,6 +73,22 @@ public class ServerMain {
             } catch (InterruptedException e) {
                 break;
             }
+        }
+    }
+
+    /**
+     * Uu tien luu vao SQL Server (JdbcMessageStore). Neu may chua co db.properties
+     * hoac khong ket noi duoc CSDL thi tam dung RAM de van chay thu duoc.
+     */
+    private static MessageStore createStore() {
+        try {
+            MessageStore store = new JdbcMessageStore();
+            System.out.println("Luu tru: SQL Server (JdbcMessageStore)");
+            return store;
+        } catch (RuntimeException e) {
+            System.err.println("CANH BAO: khong dung duoc SQL Server - " + e.getMessage());
+            System.err.println("=> Tam luu trong RAM, LICH SU SE MAT khi tat server.");
+            return new InMemoryMessageStore();
         }
     }
 }
