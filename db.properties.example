@@ -1,0 +1,14 @@
+# ============================================================
+# Cau hinh ket noi SQL Server cho chat-server (JdbcMessageStore)
+#
+# CACH DUNG: copy file nay thanh "db.properties" (dat cung thu muc nay,
+# tuc thu muc goc Nhom6-LTMMT), roi sua user/password theo may minh.
+# File db.properties da nam trong .gitignore -> KHONG bi day len GitHub.
+# ============================================================
+
+# localhost:1433 = SQL Server tren may minh, cong mac dinh.
+# Neu dung SQL Express ten instance SQLEXPRESS, thu:
+#   jdbc:sqlserver://localhost\\SQLEXPRESS;databaseName=ChatNhom06;encrypt=true;trustServerCertificate=true
+url=jdbc:sqlserver://localhost:1433;databaseName=ChatNhom06;encrypt=true;trustServerCertificate=true
+user=sa
+password=DOI_MAT_KHAU_O_DAY
