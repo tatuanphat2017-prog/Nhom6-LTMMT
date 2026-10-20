@@ -17,7 +17,8 @@ import vn.hutech.nhom06.common.Protocol;
  * Chay: TestClient [host] [cong]   (mac dinh localhost 5000)
  *
  * Lenh tat:
- *   /login ten      /rooms        /create tenPhong   /join tenPhong
+ *   /register ten matKhau   /login ten matKhau
+ *   /rooms        /create tenPhong   /join tenPhong
  *   /leave          /history [n]  /members           /raw LENH|...   /quit
  *   (go chu binh thuong = gui tin vao phong dang o)
  *
@@ -36,7 +37,7 @@ public class TestClient {
         try (Socket socket = new Socket(host, port)) {
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
             BufferedWriter out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
-            System.out.println("Da ket noi " + host + ":" + port + ". Go /login <ten> de bat dau.");
+            System.out.println("Da ket noi " + host + ":" + port + ". Go /register <ten> <matKhau> (lan dau) hoac /login <ten> <matKhau>.");
 
             Thread reader = new Thread(() -> {
                 try {
@@ -76,7 +77,11 @@ public class TestClient {
         String[] a = s.split(" ", 2);
         String arg = a.length > 1 ? a[1].trim() : "";
         return switch (a[0].toLowerCase()) {
-            case "/login" -> Protocol.build(Protocol.LOGIN, arg);
+            case "/login", "/register" -> {
+                String[] np = arg.split("\\s+", 2);
+                yield Protocol.build(a[0].equalsIgnoreCase("/login") ? Protocol.LOGIN : Protocol.REGISTER,
+                        np[0], np.length > 1 ? np[1] : "");
+            }
             case "/rooms" -> Protocol.build(Protocol.LIST_ROOMS);
             case "/create" -> Protocol.build(Protocol.CREATE_ROOM, arg);
             case "/join" -> Protocol.build(Protocol.JOIN, arg);

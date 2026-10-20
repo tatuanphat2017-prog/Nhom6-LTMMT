@@ -1,7 +1,9 @@
 package vn.hutech.nhom06.client.net;
 
 import java.util.List;
+import java.util.Map;
 import vn.hutech.nhom06.common.ChatMessage;
+import vn.hutech.nhom06.common.PrivateMessage;
 import vn.hutech.nhom06.common.RoomInfo;
 
 /**
@@ -70,5 +72,29 @@ public interface ClientEventListener {
      * vi ngay sau do onRoomList se co phong moi.
      */
     default void onRoomCreated(String room) {
+    }
+
+    /** Danh sach nguoi dang online (ke ca minh), sap xep A-Z. Gui lai moi khi co nguoi vao/thoat. */
+    default void onOnlineList(List<String> users) {
+    }
+
+    /** Moi tai khoan da dang ky (ca nguoi offline), A-Z. Gui luc dang nhap va khi co tai khoan moi. */
+    default void onUserList(List<String> users) {
+    }
+
+    /** So tin rieng chua doc theo nguoi gui (gom ca tin nhan duoc luc minh offline). */
+    default void onUnreadCounts(Map<String, Integer> unread) {
+    }
+
+    /** Tin nhan rieng moi (minh gui hoac nguoi khac gui cho minh; tin file thi message.isFile()). */
+    default void onPrivateMessage(PrivateMessage message) {
+    }
+
+    /** Mot tin rieng trong lich su (cu -> moi), sau khi goi requestPrivateHistory. */
+    default void onPrivateHistoryItem(PrivateMessage message) {
+    }
+
+    /** Da gui het lich su tin rieng voi {@code other}. */
+    default void onPrivateHistoryEnd(String other, int count) {
     }
 }

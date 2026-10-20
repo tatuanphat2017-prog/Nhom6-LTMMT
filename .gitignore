@@ -16,3 +16,6 @@ db.properties
 .DS_Store
 Thumbs.db
 *.log
+
+# File nguoi dung gui len server
+uploads/

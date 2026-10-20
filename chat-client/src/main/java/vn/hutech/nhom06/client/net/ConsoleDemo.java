@@ -17,7 +17,7 @@ import vn.hutech.nhom06.common.RoomInfo;
  * dong thoi la vi du mau cach dung ClientConnection + ClientEventListener.
  * Chay: ConsoleDemo [host] [cong]   (mac dinh localhost 5000)
  *
- * Lenh: /login ten | /rooms | /create phong | /join phong | /leave
+ * Lenh: /register ten matKhau | /login ten matKhau | /rooms | /create phong | /join phong | /leave
  *       /history n | /members | /quit | (go chu thuong = gui tin)
  *
  * @author Tran Lang
@@ -104,7 +104,7 @@ public class ConsoleDemo {
             System.out.println("Khong ket noi duoc " + host + ":" + port + " - " + e.getMessage());
             return;
         }
-        System.out.println("Da ket noi. Go /login <ten> de bat dau.");
+        System.out.println("Da ket noi. Go /register <ten> <matKhau> (lan dau) hoac /login <ten> <matKhau>.");
 
         BufferedReader console = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
         String input;
@@ -116,7 +116,15 @@ public class ConsoleDemo {
             String[] a = s.split(" ", 2);
             String arg = a.length > 1 ? a[1].trim() : "";
             switch (a[0].toLowerCase()) {
-                case "/login" -> conn.login(arg);
+                case "/login", "/register" -> {
+                    String[] np = arg.split("\\s+", 2);
+                    String pw = np.length > 1 ? np[1] : "";
+                    if (a[0].equalsIgnoreCase("/login")) {
+                        conn.login(np[0], pw);
+                    } else {
+                        conn.register(np[0], pw);
+                    }
+                }
                 case "/rooms" -> conn.listRooms();
                 case "/create" -> conn.createRoom(arg);
                 case "/join" -> conn.join(arg);

@@ -22,7 +22,10 @@ import javax.swing.border.Border;
 
 /**
  * Mau sac, font va nut bam dung chung cho giao dien Client.
- * Phong cach: nen trang, diem nhan xanh duong, don gian.
+ * Phong cach: trang xanh, diem nhan xanh duong, don gian.
+ * Nen KHONG dung trang tinh (do choi): 3 lop mau xam xanh nhat dan
+ *   PANEL (cot trai/phai) < WINDOW (vung giua) < BG (khung, danh sach, o nhap)
+ * cung duong vien/duong phan cach dam hon de nhin ro bo cuc.
  *
  * @author Nhom 06
  */
@@ -32,13 +35,15 @@ public final class Theme {
     }
 
     // ===== Bang mau =====
-    public static final Color BG = Color.WHITE;                       // nen chinh
-    public static final Color PANEL = new Color(0xF4F7FB);            // nen cot trai/phai
-    public static final Color BORDER = new Color(0xDCE3ED);           // duong vien
+    public static final Color BG = new Color(0xF7F9FC);               // be mat: khung chat, danh sach, o nhap, the
+    public static final Color WINDOW = new Color(0xEAEFF5);           // nen vung giua / man hinh dang nhap
+    public static final Color PANEL = new Color(0xE1E8F0);            // nen cot trai/phai
+    public static final Color BORDER = new Color(0xC3CEDB);           // duong vien khung
+    public static final Color DIVIDER = new Color(0xA9B7C9);          // duong phan cach giua cac cot
     public static final Color PRIMARY = new Color(0x1E6FD9);          // xanh chu dao
     public static final Color PRIMARY_HOVER = new Color(0x185BB5);
     public static final Color PRIMARY_PRESSED = new Color(0x134A94);
-    public static final Color PRIMARY_LIGHT = new Color(0xE6F0FC);    // nen xanh nhat (nut phu, dong dang chon)
+    public static final Color PRIMARY_LIGHT = new Color(0xDCE9FB);    // nen xanh nhat (nut phu, dong dang chon)
     public static final Color TEXT = new Color(0x1F2937);
     public static final Color MUTED = new Color(0x6B7280);            // chu phu, gio gui
     public static final Color SYSTEM = new Color(0x0F8A5F);           // thong bao vao/roi phong
@@ -148,16 +153,16 @@ public final class Theme {
             if (!isEnabled()) {
                 bg = primary ? DISABLED : PANEL;
             } else if (getModel().isPressed()) {
-                bg = primary ? PRIMARY_PRESSED : new Color(0xCFE0F7);
+                bg = primary ? PRIMARY_PRESSED : new Color(0xC2D7F5);
             } else if (getModel().isRollover()) {
-                bg = primary ? PRIMARY_HOVER : new Color(0xD9E7FA);
+                bg = primary ? PRIMARY_HOVER : new Color(0xCEE0F8);
             } else {
                 bg = primary ? PRIMARY : PRIMARY_LIGHT;
             }
             g2.setColor(bg);
             g2.fillRoundRect(0, 0, w - 1, h - 1, 10, 10);
             if (!primary) {
-                g2.setColor(isEnabled() ? new Color(0xB9D0F0) : BORDER);
+                g2.setColor(isEnabled() ? new Color(0xA9C4EC) : BORDER);
                 g2.setStroke(new BasicStroke(1f));
                 g2.drawRoundRect(0, 0, w - 1, h - 1, 10, 10);
             }
