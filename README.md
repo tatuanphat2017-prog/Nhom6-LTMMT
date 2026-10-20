@@ -43,6 +43,37 @@ copy `db.properties.example` thành `db.properties` và sửa url/user/password.
 
 Lệnh trong cửa sổ server: `status`, `stop`.
 
+## Đăng nhập / Đăng ký
+
+- Lần đầu: ở màn hình đăng nhập bấm **"Chưa có tài khoản? Đăng ký"**, nhập tên, mật khẩu (từ 6 ký tự) 2 lần. Đăng ký xong vào chat luôn.
+- Mật khẩu lưu trong SQL Server dưới dạng **đã băm PBKDF2 + salt** (bảng `Users`, cột `PasswordHash`, `PasswordSalt`), mở SSMS cũng không đọc được.
+- Client nhớ IP, cổng và tên lần trước (không nhớ mật khẩu).
+- `TestClient` / `ConsoleDemo`: `/register ten matKhau` hoặc `/login ten matKhau`.
+
+## Giao diện client
+
+- **Cột trái – Mọi người:** mọi tài khoản đã đăng ký, người online ở trên (chấm xanh), offline ở dưới (chấm xám). Bấm vào một người để mở **chat riêng**, kể cả người đang offline (số đỏ = tin riêng chưa đọc).
+- **Giữa:** khung chat của phòng đang ở, hoặc khung chat riêng. Bấm tên phòng đang ở (cột phải) để quay lại chat phòng.
+- **Cột phải:** khung **Phòng chat** (danh sách phòng, Tạo / Vào / Rời phòng) và khung **Thành viên phòng** (nháy đúp vào tên để nhắn riêng).
+
+## Tin nhắn riêng
+
+- Chỉ người gửi và người nhận thấy tin. Gửi được cả tin chữ lẫn file (tối đa 25 MB).
+- Nhắn được cho **người đang offline**: tin được lưu lại, lúc họ đăng nhập sẽ thấy số đỏ đúng bằng số tin chưa đọc. Trạng thái đã đọc lưu ở cột `PrivateMessages.IsRead`.
+- Lịch sử tin riêng lưu trong bảng `PrivateMessages`, đăng nhập lại vẫn xem được.
+- Đang chat riêng mà phòng có tin mới: tên phòng hiện số tin chưa đọc.
+
+## Gửi file
+
+- Trong phòng hoặc chat riêng, bấm **Gửi file** rồi chọn file (tối đa **25 MB**, mọi loại file). Nhấp vào tên file trong khung chat để chọn nơi lưu và tải về.
+- Server lưu file trong thư mục `uploads/` cạnh nơi chạy server (đã chặn trong `.gitignore`).
+
+## Nâng cấp CSDL
+
+Máy đã tạo CSDL bằng `schema.sql` bản cũ: server **tự** thêm 3 cột file vào `Messages`, 2 cột mật khẩu vào `Users` và tạo bảng `PrivateMessages` khi khởi động (không mất dữ liệu cũ). Nếu server báo thiếu quyền thì mở SSMS chạy `database/nang-cap-csdl.sql` một lần.
+
+Chi tiết giao thức: `docs/protocol.md` mục 6 (file), 7 (online, tin riêng), 8 (đăng nhập / đăng ký).
+
 ## Quy trình GitHub
 
 1. Mỗi lần ngồi code: **Pull** `main` mới nhất.

@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -41,8 +43,12 @@ public class ChatServer {
     public static final String DEFAULT_ROOM = "Phong chung";
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm:ss");
 
+    /** Thu muc luu file nguoi dung gui (tao tu dong, nam canh noi chay server). */
+    public static final String UPLOAD_DIR = "uploads";
+
     private final int port;
     private final MessageStore store;
+    private final Path uploadDir;
     private final RoomManager rooms = new RoomManager();
     private final Map<String, ClientHandler> onlineUsers = new ConcurrentHashMap<>(); // ten thuong -> client
     private final Set<ClientHandler> clients = ConcurrentHashMap.newKeySet();         // ke ca chua dang nhap
@@ -54,8 +60,13 @@ public class ChatServer {
     private Thread acceptThread;
 
     public ChatServer(int port, MessageStore store) {
+        this(port, store, Path.of(UPLOAD_DIR));
+    }
+
+    public ChatServer(int port, MessageStore store, Path uploadDir) {
         this.port = port;
         this.store = store;
+        this.uploadDir = uploadDir.toAbsolutePath().normalize();
     }
 
     // ================== Khoi dong / dung ==================
@@ -64,6 +75,7 @@ public class ChatServer {
         if (running) {
             return;
         }
+        Files.createDirectories(uploadDir);
         serverSocket = new ServerSocket(port);
         loadRooms();
 
@@ -79,6 +91,8 @@ public class ChatServer {
         acceptThread.start();
 
         log("Server da khoi dong tai cong " + port + " (" + rooms.count() + " phong)");
+        log("Thu muc luu file: " + uploadDir + " (toi da "
+                + (Protocol.MAX_FILE_SIZE / (1024 * 1024)) + " MB/file)");
         listeners.forEach(l -> l.onServerStarted(port));
         fireRoomsChanged();
     }
@@ -145,6 +159,7 @@ public class ChatServer {
         safeStore(() -> store.saveUser(handler.getUsername()));
         log(handler.getUsername() + " dang nhap tu " + handler.getAddress());
         listeners.forEach(l -> l.onUserLoggedIn(handler.getUsername(), handler.getAddress()));
+        broadcastOnlineList();
     }
 
     /** Goi khi ket noi dong (o thread cua client do). */
@@ -154,6 +169,9 @@ public class ChatServer {
         if (name != null) {
             onlineUsers.remove(key(name), handler);
             log(name + " da thoat");
+            if (running) {
+                broadcastOnlineList();
+            }
         }
         log("Dong ket noi " + handler.getAddress() + " (con " + clients.size() + " ket noi)");
         listeners.forEach(l -> l.onClientDisconnected(handler.getAddress(), name));
@@ -166,6 +184,43 @@ public class ChatServer {
             c.send(line);
         }
         fireRoomsChanged();
+    }
+
+    /** ONLINE_LIST|ten1|ten2... gui cho moi nguoi da dang nhap. */
+    void broadcastOnlineList() {
+        String line = onlineListLine();
+        for (ClientHandler c : onlineUsers.values()) {
+            c.send(line);
+        }
+    }
+
+    String onlineListLine() {
+        return Protocol.build(Protocol.ONLINE_LIST, getOnlineUsers().toArray());
+    }
+
+    /** USER_LIST|... gui cho moi nguoi (khi co tai khoan moi). */
+    void broadcastUserList() {
+        String line = userListLine();
+        for (ClientHandler c : onlineUsers.values()) {
+            c.send(line);
+        }
+    }
+
+    /** Moi tai khoan da dang ky (doc tu CSDL); CSDL loi thi tam dung danh sach dang online. */
+    String userListLine() {
+        List<String> names;
+        try {
+            names = store.loadAccountNames();
+        } catch (RuntimeException e) {
+            log("Loi doc danh sach tai khoan: " + e.getMessage());
+            names = getOnlineUsers();
+        }
+        return Protocol.build(Protocol.USER_LIST, names.toArray());
+    }
+
+    /** Tim nguoi dang online theo ten (khong phan biet hoa/thuong), null neu khong co. */
+    ClientHandler findUser(String name) {
+        return name == null ? null : onlineUsers.get(key(name.trim()));
     }
 
     String roomListLine() {
@@ -182,6 +237,18 @@ public class ChatServer {
 
     MessageStore store() {
         return store;
+    }
+
+    Path uploadDir() {
+        return uploadDir;
+    }
+
+    /** Chay viec ton thoi gian (vd gui file cho client) tren thread rieng cua server. */
+    void runBackground(Runnable task) {
+        ExecutorService p = pool;
+        if (p != null && !p.isShutdown()) {
+            p.execute(task);
+        }
     }
 
     /** Goi CSDL, neu loi thi chi ghi log, khong lam sap server. */
