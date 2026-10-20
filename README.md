@@ -32,8 +32,14 @@ Nhom6-LTMMT/
 
 1. **File → Open Project** → chọn thư mục `Nhom6-LTMMT` → tick **Open Required Projects**.
 2. Chuột phải project cha **Nhom6-LTMMT** → **Clean and Build** (lần đầu cần mạng để tải Maven).
-3. Mở module **chat-server** → **Run** → Output hiện `Server da khoi dong tai cong 5000`.
-4. Test: chuột phải `chat-server/.../tools/TestClient.java` → **Run File**, gõ `/login Ten`, `/join Phong chung`, rồi gõ tin nhắn. Mở thêm TestClient thứ 2 để chat qua lại.
+3. **Server có giao diện:** chuột phải `chat-server/.../server/ui/ServerAdminMain.java` → **Run File** → bấm **Start**.
+   (Hoặc chạy console: `chat-server/.../server/ServerMain.java`.)
+4. **Client giao diện:** chuột phải `chat-client/.../client/ClientMain.java` → **Run File**, nhập IP server, cổng 5000, tên hiển thị → **Kết nối**.
+   Chạy `ClientMain` thêm lần nữa để mở client thứ 2 và chat qua lại.
+5. Máy khác trong mạng LAN: nhập IP của máy chạy server (xem bằng `ipconfig`), nhớ cho phép Java qua Windows Firewall.
+
+Lưu lịch sử vào SQL Server: chạy `database/schema.sql` trong SSMS, bật TCP/IP cho instance SQL Server,
+copy `db.properties.example` thành `db.properties` và sửa url/user/password. Không có file này thì server tự lưu tạm trong RAM.
 
 Lệnh trong cửa sổ server: `status`, `stop`.
 

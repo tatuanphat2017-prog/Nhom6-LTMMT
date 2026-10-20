@@ -1,20 +1,35 @@
 package vn.hutech.nhom06.client;
 
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import vn.hutech.nhom06.client.ui.LoginFrame;
+import vn.hutech.nhom06.common.Protocol;
+
 /**
- * Diem khoi chay Client.
+ * Diem khoi chay Client (giao dien Swing).
+ * NetBeans: chuot phai file nay -> Run File.
+ * Tham so (khong bat buoc): [ip server] [cong]   mac dinh localhost 5000
  *
- * Phan cong:
- *  - HUY : giao dien Swing (goi y package vn.hutech.nhom06.client.ui)
- *          LoginFrame, MainFrame, ChatPanel...
- *  - LANG: ket noi mang (goi y package vn.hutech.nhom06.client.net)
- *          ClientConnection, MessageListener...
+ * Cau truc:
+ *  - client.ui  : giao dien (LoginFrame, MainFrame, Theme)
+ *  - client.net : ket noi mang (ClientConnection, ClientEventListener)
  *
- * Giao thuc: xem docs/protocol.md va lop vn.hutech.nhom06.common.Protocol
- * Test thu server truoc bang: chat-server / tools / TestClient
+ * @author Nhom 06
  */
 public class ClientMain {
 
     public static void main(String[] args) {
-        System.out.println("Client dang duoc xay dung (Huy + Lang).");
+        System.setOut(new PrintStream(System.out, true, StandardCharsets.UTF_8));
+        System.setErr(new PrintStream(System.err, true, StandardCharsets.UTF_8));
+        String host = args.length > 0 ? args[0] : "localhost";
+        int port = args.length > 1 ? Integer.parseInt(args[1]) : Protocol.DEFAULT_PORT;
+        try {
+            // Hop thoai (JOptionPane) giong ung dung Windows
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception ignored) {
+        }
+        SwingUtilities.invokeLater(() -> new LoginFrame(host, port, "").setVisible(true));
     }
 }
