@@ -241,6 +241,18 @@ public class ClientConnection {
         send(Protocol.build(Protocol.LIST_UNREAD));
     }
 
+    /** Xin so tin chua doc cua cac phong. Ket qua: onRoomUnreadCounts. */
+    public void listRoomUnread() {
+        send(Protocol.build(Protocol.LIST_ROOM_UNREAD));
+    }
+
+    /** Bao server: dang xem phong {@code room}, da doc het tin -> cap nhat "Da xem" cho ca phong. */
+    public void markRoomRead(String room) {
+        if (room != null && !room.isBlank()) {
+            send(Protocol.build(Protocol.ROOM_READ, room.trim()));
+        }
+    }
+
     /** Bao server: da doc het tin rieng {@code other} gui minh (khi mo khung chat voi nguoi do). */
     public void markPrivateRead(String other) {
         if (other != null && !other.isBlank()) {
@@ -606,6 +618,26 @@ public class ClientConnection {
                 }
                 l.onUnreadCounts(unread);
             }
+            case Protocol.ROOM_UNREAD_LIST -> {
+                Map<String, Integer> unread = new LinkedHashMap<>();
+                for (int i = 1; i < p.length; i++) {
+                    int idx = p[i].lastIndexOf(':');
+                    if (idx > 0) {
+                        unread.put(p[i].substring(0, idx), toInt(p[i].substring(idx + 1)));
+                    }
+                }
+                l.onRoomUnreadCounts(unread);
+            }
+            case Protocol.ROOM_SEEN -> {
+                List<String> users = new ArrayList<>();
+                for (int i = 2; i < p.length; i++) {
+                    if (!p[i].isEmpty()) {
+                        users.add(p[i]);
+                    }
+                }
+                l.onRoomSeen(field(p, 1), users);
+            }
+            case Protocol.PM_SEEN -> l.onPrivateSeen(field(p, 1), "1".equals(field(p, 2)));
             case Protocol.PM -> l.onPrivateMessage(toPrivate(p));
             case Protocol.PM_FILE -> l.onPrivateMessage(toPrivateFile(p));
             case Protocol.PM_HISTORY_ITEM -> l.onPrivateHistoryItem(toPrivate(p));

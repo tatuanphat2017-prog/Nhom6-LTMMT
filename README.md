@@ -60,6 +60,8 @@ Lệnh trong cửa sổ server: `status`, `stop`.
 
 - Chỉ người gửi và người nhận thấy tin. Gửi được cả tin chữ lẫn file (tối đa 25 MB).
 - Nhắn được cho **người đang offline**: tin được lưu lại, lúc họ đăng nhập sẽ thấy số đỏ đúng bằng số tin chưa đọc. Trạng thái đã đọc lưu ở cột `PrivateMessages.IsRead`.
+- **Đã xem:** chat riêng hiện "✓ Đã xem" khi người kia đã mở tin cuối mình gửi; trong phòng hiện "✓ Đã xem: Lang, Huy" cho tin mới nhất.
+- **Số đỏ của phòng:** phòng mình từng vào có tin mới (kể cả lúc mình offline) thì hiện số tin chưa đọc cạnh tên phòng (bảng `RoomReads`).
 - Lịch sử tin riêng lưu trong bảng `PrivateMessages`, đăng nhập lại vẫn xem được.
 - Đang chat riêng mà phòng có tin mới: tên phòng hiện số tin chưa đọc.
 
@@ -70,9 +72,9 @@ Lệnh trong cửa sổ server: `status`, `stop`.
 
 ## Nâng cấp CSDL
 
-Máy đã tạo CSDL bằng `schema.sql` bản cũ: server **tự** thêm 3 cột file vào `Messages`, 2 cột mật khẩu vào `Users` và tạo bảng `PrivateMessages` khi khởi động (không mất dữ liệu cũ). Nếu server báo thiếu quyền thì mở SSMS chạy `database/nang-cap-csdl.sql` một lần.
+Máy đã tạo CSDL bằng `schema.sql` bản cũ: server **tự** thêm 3 cột file vào `Messages`, 2 cột mật khẩu vào `Users`, tạo bảng `PrivateMessages` và `RoomReads` khi khởi động (không mất dữ liệu cũ). Nếu server báo thiếu quyền thì mở SSMS chạy `database/nang-cap-csdl.sql` một lần.
 
-Chi tiết giao thức: `docs/protocol.md` mục 6 (file), 7 (online, tin riêng), 8 (đăng nhập / đăng ký).
+Chi tiết giao thức: `docs/protocol.md` mục 6 (file), 7 (online, tin riêng), 8 (đăng nhập / đăng ký), 9 (đã xem, tin chưa đọc của phòng).
 
 ## Quy trình GitHub
 

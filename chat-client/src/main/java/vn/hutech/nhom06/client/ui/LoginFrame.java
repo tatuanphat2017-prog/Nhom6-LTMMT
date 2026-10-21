@@ -461,6 +461,7 @@ public class LoginFrame extends JFrame {
         connection.listOnline();  // va danh sach nguoi online (goi luc dang nhap co the da den LoginFrame)
         connection.listUsers();   // moi tai khoan (ca offline)
         connection.listUnread();  // tin rieng nhan duoc luc offline -> so do
+        connection.listRoomUnread(); // tin moi trong cac phong tung vao -> so do
         connection = null;         // MainFrame chiu trach nhiem ket noi tu day
         dispose();
     }

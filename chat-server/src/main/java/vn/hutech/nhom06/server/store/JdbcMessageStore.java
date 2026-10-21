@@ -35,6 +35,8 @@ import vn.hutech.nhom06.common.PrivateMessage;
  *    Noi dung file nam trong thu muc uploads/ cua server, ten file = FileId.)
  *   PrivateMessages(PmId, Sender, Receiver, SentAt, Content, FileId, FileName, FileSize, IsRead)
  *   (tin nhan rieng giua 2 nguoi; IsRead = 0 khi nguoi nhan chua mo khung chat -> hien so do)
+ *   RoomReads(Username, RoomId, LastReadId)
+ *   (moi nguoi da doc toi tin nao cua phong nao: dem tin chua doc cua phong + "Da xem: A, B")
  *
  * An toan da luong: lop nay KHONG giu Connection dung chung. Moi lan goi ham
  * deu mo 1 Connection rieng (try-with-resources tu dong dong), nen nhieu thread
@@ -116,6 +118,44 @@ public class JdbcMessageStore implements MessageStore {
             + "EXEC('UPDATE dbo.PrivateMessages SET IsRead = 1'); "
             + "END";
 
+    // CSDL cu chua co bang RoomReads -> tu tao
+    private static final String SQL_CREATE_ROOM_READS =
+            "IF OBJECT_ID(N'dbo.RoomReads', N'U') IS NULL "
+            + "CREATE TABLE dbo.RoomReads ("
+            + " Username NVARCHAR(20) NOT NULL, RoomId INT NOT NULL, LastReadId BIGINT NOT NULL,"
+            + " CONSTRAINT PK_RoomReads PRIMARY KEY (Username, RoomId),"
+            + " CONSTRAINT FK_RoomReads_Rooms FOREIGN KEY (RoomId) REFERENCES dbo.Rooms (RoomId) ON DELETE CASCADE)";
+
+    // Upsert: LastReadId = tin moi nhat cua phong (0 neu phong chua co tin)
+    private static final String SQL_MARK_ROOM_READ =
+            "MERGE RoomReads WITH (HOLDLOCK) AS t "
+            + "USING (SELECT r.RoomId, ISNULL((SELECT MAX(m.MessageId) FROM Messages m WHERE m.RoomId = r.RoomId), 0) AS LastId "
+            + "       FROM Rooms r WHERE r.RoomName = ?) AS s "
+            + "ON t.RoomId = s.RoomId AND t.Username = ? "
+            + "WHEN MATCHED THEN UPDATE SET LastReadId = s.LastId "
+            + "WHEN NOT MATCHED THEN INSERT (Username, RoomId, LastReadId) VALUES (?, s.RoomId, s.LastId);";
+
+    private static final String SQL_COUNT_ROOM_UNREAD =
+            "SELECT r.RoomName, COUNT(m.MessageId) FROM RoomReads rr "
+            + "JOIN Rooms r ON r.RoomId = rr.RoomId "
+            + "JOIN Messages m ON m.RoomId = rr.RoomId AND m.MessageId > rr.LastReadId AND m.Sender <> rr.Username "
+            + "WHERE rr.Username = ? GROUP BY r.RoomName";
+
+    // Ai da doc toi tin moi nhat cua phong (tru nguoi gui tin do)
+    private static final String SQL_ROOM_SEEN =
+            "SELECT rr.Username FROM RoomReads rr "
+            + "JOIN Rooms r ON r.RoomId = rr.RoomId "
+            + "CROSS APPLY (SELECT TOP 1 m.MessageId, m.Sender FROM Messages m "
+            + "             WHERE m.RoomId = r.RoomId ORDER BY m.MessageId DESC) lm "
+            + "WHERE r.RoomName = ? AND rr.LastReadId >= lm.MessageId AND rr.Username <> lm.Sender "
+            + "ORDER BY rr.Username";
+
+    private static final String SQL_ROOM_MEMBERS =
+            "SELECT rr.Username FROM RoomReads rr JOIN Rooms r ON r.RoomId = rr.RoomId WHERE r.RoomName = ?";
+
+    private static final String SQL_LAST_PRIVATE_READ =
+            "SELECT TOP 1 IsRead FROM PrivateMessages WHERE Sender = ? AND Receiver = ? ORDER BY PmId DESC";
+
     private static final String SQL_COUNT_UNREAD =
             "SELECT Sender, COUNT(*) FROM PrivateMessages "
             + "WHERE Receiver = ? AND IsRead = 0 GROUP BY Sender";
@@ -184,6 +224,7 @@ public class JdbcMessageStore implements MessageStore {
             st.execute(SQL_ADD_FILE_COLUMNS);
             st.execute(SQL_CREATE_PRIVATE_TABLE);
             st.execute(SQL_ADD_ISREAD_COLUMN);
+            st.execute(SQL_CREATE_ROOM_READS);
             st.execute(SQL_ADD_PASSWORD_COLUMNS);
         } catch (SQLException e) {
             throw new IllegalStateException("CSDL chua duoc nang cap va tai khoan khong du quyen tu nang cap. "
@@ -385,6 +426,78 @@ public class JdbcMessageStore implements MessageStore {
             ps.executeUpdate();
         } catch (SQLException e) {
             throw error("danh dau da doc", e);
+        }
+    }
+
+    @Override
+    public boolean isLastPrivateRead(String sender, String receiver) {
+        try (Connection c = open();
+             PreparedStatement ps = c.prepareStatement(SQL_LAST_PRIVATE_READ)) {
+            ps.setNString(1, sender);
+            ps.setNString(2, receiver);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getBoolean(1);
+            }
+        } catch (SQLException e) {
+            throw error("doc trang thai da xem", e);
+        }
+    }
+
+    @Override
+    public void markRoomRead(String user, String room) {
+        try (Connection c = open();
+             PreparedStatement ps = c.prepareStatement(SQL_MARK_ROOM_READ)) {
+            ps.setNString(1, room);
+            ps.setNString(2, user);
+            ps.setNString(3, user);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            if (!isDuplicate(e)) {
+                throw error("danh dau da doc phong", e);
+            }
+        }
+    }
+
+    @Override
+    public Map<String, Integer> countRoomUnread(String user) {
+        Map<String, Integer> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        try (Connection c = open();
+             PreparedStatement ps = c.prepareStatement(SQL_COUNT_ROOM_UNREAD)) {
+            ps.setNString(1, user);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    map.put(rs.getNString(1), rs.getInt(2));
+                }
+            }
+            return map;
+        } catch (SQLException e) {
+            throw error("dem tin chua doc cua phong", e);
+        }
+    }
+
+    @Override
+    public List<String> loadRoomSeen(String room) {
+        return loadNames(SQL_ROOM_SEEN, room, "doc danh sach da xem");
+    }
+
+    @Override
+    public List<String> loadRoomMembers(String room) {
+        return loadNames(SQL_ROOM_MEMBERS, room, "doc thanh vien phong");
+    }
+
+    private List<String> loadNames(String sql, String param, String action) {
+        List<String> names = new ArrayList<>();
+        try (Connection c = open();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setNString(1, param);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    names.add(rs.getNString(1));
+                }
+            }
+            return names;
+        } catch (SQLException e) {
+            throw error(action, e);
         }
     }
 

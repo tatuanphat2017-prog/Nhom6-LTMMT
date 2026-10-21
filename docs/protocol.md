@@ -243,3 +243,20 @@ S: PM_HISTORY_END|Lang|1
 | `NAME_TAKEN` | Tài khoản đang đăng nhập ở máy khác |
 
 **Hạn chế:** kết nối TCP chưa mã hóa, nên mật khẩu đi trên mạng ở dạng chữ thường. Hướng phát triển là bọc socket bằng TLS (`SSLSocket`). Khi chạy qua ZeroTier thì đường truyền giữa các máy đã được ZeroTier mã hóa sẵn.
+
+## 9. Đã xem và tin chưa đọc của phòng
+
+| Chiều | Gói tin | Ý nghĩa |
+|---|---|---|
+| C → S | `ROOM_READ\|phong` | Mình đang xem phòng, đã đọc hết tin (client tự gửi khi có tin mới mà đang mở khung phòng, hoặc khi quay lại khung phòng) |
+| S → phòng | `ROOM_SEEN\|phong\|ten1\|ten2...` | Những ai đã xem **tin mới nhất** của phòng (không gồm người gửi tin đó). Client hiện "✓ Đã xem: Lang, Huy" dưới khung chat |
+| S → C | `ROOM_UNREAD_LIST\|phong:soTin\|...` | Số tin chưa đọc của các phòng **mình từng vào**. Gửi lúc đăng nhập, khi vào phòng, và mỗi khi phòng mình không đang ở có tin mới |
+| C → S | `LIST_ROOM_UNREAD` | Xin lại `ROOM_UNREAD_LIST` |
+| S → C | `PM_SEEN\|nguoiKia\|1\|0` | `nguoiKia` đã xem (1) hoặc chưa xem (0) tin cuối cùng mình gửi họ. Gửi sau `PM_HISTORY_END`, và ngay khi người kia gửi `PM_READ`. Client hiện "✓ Đã xem" |
+
+**Lưu trữ:** bảng `RoomReads(Username, RoomId, LastReadId)` ghi mỗi người đã đọc tới tin nào (`MessageId`) của phòng nào. Ai có dòng trong bảng này là người **từng vào phòng**, và chỉ những phòng này mới hiện số đỏ.
+- Tin chưa đọc của phòng là các tin có `MessageId > LastReadId` do **người khác** gửi.
+- Danh sách đã xem gồm những người có `LastReadId` lớn hơn hoặc bằng `MessageId` của tin mới nhất.
+- Đã xem của tin riêng dùng cột `PrivateMessages.IsRead` của tin cuối cùng.
+
+**Khi nào tính là đã xem:** khi vào phòng, khi đang mở khung chat của phòng hoặc của người đó lúc tin đến, và khi bấm quay lại khung đó. Tin mình tự gửi luôn tính là mình đã đọc.

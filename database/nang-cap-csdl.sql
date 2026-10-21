@@ -4,6 +4,7 @@
 --   - tin nhan rieng        : tao bang PrivateMessages
 --   - dang nhap co mat khau : them 2 cot PasswordHash, PasswordSalt vao Users
 --   - tin chua doc          : them cot IsRead vao PrivateMessages (tin cu coi nhu da doc)
+--   - da xem / chua doc phong : tao bang RoomReads
 -- KHONG xoa du lieu cu. Chay nhieu lan cung khong sao.
 --
 -- Server cung tu chay cac lenh nay khi khoi dong; file nay dung khi tai khoan
@@ -49,6 +50,17 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID(N'dbo.RoomReads', N'U') IS NULL
+    CREATE TABLE dbo.RoomReads (
+        Username   NVARCHAR(20) NOT NULL,
+        RoomId     INT          NOT NULL,
+        LastReadId BIGINT       NOT NULL,
+        CONSTRAINT PK_RoomReads PRIMARY KEY (Username, RoomId),
+        CONSTRAINT FK_RoomReads_Rooms FOREIGN KEY (RoomId)
+            REFERENCES dbo.Rooms (RoomId) ON DELETE CASCADE
+    );
+GO
+
 -- Kiem tra
 SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_NAME IN ('Users', 'Messages', 'PrivateMessages') ORDER BY TABLE_NAME, ORDINAL_POSITION;
+WHERE TABLE_NAME IN ('Users', 'Messages', 'PrivateMessages', 'RoomReads') ORDER BY TABLE_NAME, ORDINAL_POSITION;

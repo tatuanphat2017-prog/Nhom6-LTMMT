@@ -77,6 +77,29 @@ public interface MessageStore {
     /** Danh dau da doc moi tin {@code sender} gui cho {@code receiver} (khi receiver mo khung chat). */
     void markRead(String receiver, String sender);
 
+    /**
+     * Tin rieng CUOI CUNG {@code sender} gui cho {@code receiver} da duoc doc chua
+     * (de hien "Da xem" ben nguoi gui). Chua gui tin nao -> false.
+     */
+    boolean isLastPrivateRead(String sender, String receiver);
+
+    // ----- Da doc trong phong (bang RoomReads: ai da doc toi tin nao cua phong nao) -----
+
+    /**
+     * {@code user} da doc het tin hien co cua phong (goi khi vao phong, khi dang xem phong co tin moi,
+     * khi chinh minh gui tin). Lan dau goi = user tro thanh "thanh vien" cua phong (de dem tin chua doc).
+     */
+    void markRoomRead(String user, String room);
+
+    /** So tin chua doc cua {@code user} trong cac phong user tung vao (khong tinh tin chinh minh gui). */
+    Map<String, Integer> countRoomUnread(String user);
+
+    /** Nhung nguoi da doc tin MOI NHAT cua phong (tru nguoi gui tin do), A-Z. Phong chua co tin -> rong. */
+    List<String> loadRoomSeen(String room);
+
+    /** Nhung nguoi tung vao phong (co dong trong RoomReads). */
+    List<String> loadRoomMembers(String room);
+
     /** Giai phong tai nguyen khi server dung. */
     default void close() {
     }

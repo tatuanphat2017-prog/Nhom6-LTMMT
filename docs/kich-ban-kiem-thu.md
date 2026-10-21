@@ -108,3 +108,21 @@ Cột "Kết quả thực tế" điền theo lần chạy kiểm thử tự đ�
 | 69 | Đếm riêng từng người | Phat gửi cho Bao | Số chưa đọc của Huy không đổi | Đạt |
 | 70 | Tên không tồn tại | `PM|KhongCo|x` | `ERROR|USER_NOT_FOUND` | Đạt |
 | 71 | Kiểm tra trong SQL Server | Sau TC64, SSMS: `SELECT Sender, Receiver, Content, IsRead FROM PrivateMessages` | 4 dòng `IsRead = 0`; sau TC67 thành `1` | *Cần chạy với SQL Server thật* |
+
+## Đã xem và tin chưa đọc của phòng
+
+Cột "Kết quả thực tế" điền theo lần chạy kiểm thử tự động ngày 21/10/2026: 4 client qua giao thức, và 1 client có giao diện thật.
+
+| STT | Tình huống | Bước làm | Kết quả mong đợi | Kết quả thực tế |
+|---|---|---|---|---|
+| 72 | Đã xem trong phòng | An gửi tin, Bình đang mở khung phòng | Dưới khung chat của An hiện "✓ Đã xem: Binh" | Đạt |
+| 73 | Nhiều người xem | Cường vào phòng, sau đó Bình đọc tiếp | "✓ Đã xem: Binh, Cuong", không có tên người gửi | Đạt |
+| 74 | Số đỏ phòng khác | Bình từng vào "Nhom A" rồi chuyển sang "Phong chung", An gửi 2 tin vào Nhom A | Cạnh "Nhom A" hiện số đỏ 2 | Đạt |
+| 75 | Số đỏ phòng khi offline | Cường thoát, An gửi thêm tin, Cường đăng nhập lại | "Phong chung" hiện số đỏ 3 | Đạt. `ROOM_UNREAD_LIST|Phong chung:3` |
+| 76 | Vào phòng thì hết số | Cường vào Phong chung | Số đỏ mất | Đạt |
+| 77 | Phòng chưa từng vào | Dũng chưa vào phòng nào | Không hiện số đỏ ở phòng nào | Đạt |
+| 78 | Tin mình gửi | An tự gửi tin | Không tính là tin chưa đọc của An | Đạt |
+| 79 | Đã xem tin riêng | Bình gửi tin riêng cho An, An mở khung chat | Bên Bình hiện "✓ Đã xem" ngay | Đạt |
+| 80 | Đã xem sau khi đăng nhập lại | An đăng xuất rồi vào lại, mở chat với Bình | Vẫn thấy "✓ Đã xem" dưới tin cuối mình gửi | Đạt |
+| 81 | Tin mới chưa xem | Gửi thêm tin riêng mới | Dòng "Đã xem" biến mất cho tới khi người kia mở | Đạt |
+| 82 | Kiểm tra SQL Server | SSMS: `SELECT * FROM RoomReads` | Mỗi người từng vào phòng có 1 dòng, `LastReadId` tăng khi đọc | *Cần chạy với SQL Server thật* |

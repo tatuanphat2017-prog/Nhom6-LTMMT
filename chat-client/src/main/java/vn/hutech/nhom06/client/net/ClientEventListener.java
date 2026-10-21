@@ -86,6 +86,18 @@ public interface ClientEventListener {
     default void onUnreadCounts(Map<String, Integer> unread) {
     }
 
+    /** So tin chua doc cua cac phong minh tung vao (khong tinh phong dang o neu dang xem). */
+    default void onRoomUnreadCounts(Map<String, Integer> unread) {
+    }
+
+    /** Nhung nguoi da xem tin moi nhat cua phong minh dang o (khong gom nguoi gui tin do). */
+    default void onRoomSeen(String room, List<String> users) {
+    }
+
+    /** {@code other} da xem (seen = true) / chua xem tin cuoi cung minh gui ho. */
+    default void onPrivateSeen(String other, boolean seen) {
+    }
+
     /** Tin nhan rieng moi (minh gui hoac nguoi khac gui cho minh; tin file thi message.isFile()). */
     default void onPrivateMessage(PrivateMessage message) {
     }
