@@ -14,19 +14,16 @@ Nhom6-LTMMT/
 └── docs/          protocol.md (đọc trước khi code!)
 ```
 
-## Phân công
+## Bảng đóng góp
 
-| Thành viên | Phụ trách | Vị trí code |
-|---|---|---|
-| **Tạ Tuấn Phát** (NT) | Giao thức, lõi Server đa luồng, quản lý phòng, broadcast; review & merge | `chat-common`, `chat-server/.../server` |
-| **Trần Lãng** | Mạng phía Client; JDBC + `JdbcMessageStore` (lưu/đọc lịch sử) | `chat-client/.../client/net`, `chat-server/.../server/store` |
-| **Nguyễn Đình Quốc Bảo** | `schema.sql`; giao diện quản trị Server; kịch bản kiểm thử | `database/`, `chat-server/.../server/ui` |
-| **Nguyễn Phan Hồng Huy** | Giao diện Client Swing; trình bày báo cáo | `chat-client/.../client/ui` |
+| MSSV | Họ và Tên | Công việc đã thực hiện | Merge Requests |
+|---|---|---|---|
+| 2380601645 | Tạ Tuấn Phát (NT) | Khởi tạo bộ khung dự án, giao thức Client–Server, lõi Server đa luồng, quản lý phòng; giao diện Client; gửi file, tin nhắn riêng, đăng ký/đăng nhập, tin nhắn offline; trạng thái đã xem và số tin chưa đọc; quản lý repo, duyệt và gộp PR | #5, #6, #7 |
+| 2380601186 | Trần Lãng | Kết nối mạng phía Client (ClientConnection, ClientEventListener); thiết kế CSDL (schema.sql); lưu lịch sử vào SQL Server (JdbcMessageStore); giao diện quản trị Server; kịch bản kiểm thử | #1, #2, #3, #4 |
+| 2380602844 | Nguyễn Đình Quốc Bảo | Chức năng đặt lại mật khẩu ở giao diện quản trị Server (đang thực hiện) | |
+| 2280601193 | Nguyễn Phan Hồng Huy | Thông báo nháy cửa sổ khi có tin nhắn mới (đang thực hiện) | |
 
-**Cổng nối giữa các phần:**
-- Bảo gắn giao diện quản trị qua `ServerListener` (nhớ dùng `SwingUtilities.invokeLater`).
-- Lãng viết `JdbcMessageStore implements MessageStore`, rồi đổi 1 dòng trong `ServerMain`.
-- Huy làm form, có các hàm như `appendMessage(...)`, `updateRoomList(...)` để Lãng gọi vào.
+Mỗi thành viên tự cập nhật dòng của mình trong Pull Request của mình.
 
 ## Chạy thử (NetBeans)
 
