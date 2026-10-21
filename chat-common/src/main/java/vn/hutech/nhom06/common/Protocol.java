@@ -59,6 +59,8 @@ public final class Protocol {
     public static final String PM_READ = "PM_READ";         // PM_READ|nguoiKia  (da doc het tin nguoiKia gui minh)
     public static final String LIST_USERS = "LIST_USERS";   // LIST_USERS   (xin danh sach moi tai khoan)
     public static final String LIST_UNREAD = "LIST_UNREAD"; // LIST_UNREAD  (xin so tin rieng chua doc)
+    public static final String ROOM_READ = "ROOM_READ";     // ROOM_READ|phong  (dang xem phong, da doc het)
+    public static final String LIST_ROOM_UNREAD = "LIST_ROOM_UNREAD"; // LIST_ROOM_UNREAD (xin so tin chua doc cua cac phong)
     // Gui file:  FILE_START -> (server FILE_ACCEPT) -> FILE_CHUNK x n -> FILE_END -> (server FILE_SAVED)
     // noiNhan = ten phong, hoac "@ten" de gui rieng cho 1 nguoi (ten phong khong the bat dau bang @)
     public static final String FILE_START = "FILE_START";   // FILE_START|maGui|noiNhan|tenFile|dungLuong
@@ -85,6 +87,9 @@ public final class Protocol {
     public static final String ONLINE_LIST = "ONLINE_LIST";   // ONLINE_LIST|ten1|ten2...  (gui moi khi co nguoi vao/thoat)
     public static final String USER_LIST = "USER_LIST";       // USER_LIST|ten1|ten2...    (moi tai khoan da dang ky, ca offline)
     public static final String UNREAD_LIST = "UNREAD_LIST";   // UNREAD_LIST|nguoiGui:soTin|...  (tin rieng chua doc)
+    public static final String ROOM_UNREAD_LIST = "ROOM_UNREAD_LIST"; // ROOM_UNREAD_LIST|phong:soTin|... (phong tung vao)
+    public static final String ROOM_SEEN = "ROOM_SEEN";       // ROOM_SEEN|phong|ten1|ten2...  (ai da xem tin moi nhat)
+    public static final String PM_SEEN = "PM_SEEN";           // PM_SEEN|nguoiKia|1/0  (nguoiKia da xem tin cuoi minh gui chua)
     // PM (server gui cho CA nguoi gui va nguoi nhan): PM|nguoiGui|nguoiNhan|thoiGian|noiDung
     public static final String PM_FILE = "PM_FILE";                 // PM_FILE|nguoiGui|nguoiNhan|thoiGian|maFile|tenFile|dungLuong
     public static final String PM_HISTORY_ITEM = "PM_HISTORY_ITEM"; // PM_HISTORY_ITEM|nguoiGui|nguoiNhan|thoiGian|noiDung

@@ -213,6 +213,8 @@ public class ClientHandler implements Runnable {
             case Protocol.PM_READ -> handlePrivateRead(p);
             case Protocol.LIST_USERS -> send(server.userListLine());
             case Protocol.LIST_UNREAD -> send(unreadLine());
+            case Protocol.ROOM_READ -> handleRoomRead(p);
+            case Protocol.LIST_ROOM_UNREAD -> send(roomUnreadLine());
             case Protocol.FILE_START -> handleFileStart(p);
             case Protocol.FILE_CHUNK -> handleFileChunk(p);
             case Protocol.FILE_END -> handleFileEnd(p);
@@ -296,6 +298,7 @@ public class ClientHandler implements Runnable {
         send(server.roomListLine());
         send(server.userListLine());
         send(unreadLine());          // tin rieng nhan duoc trong luc offline -> so do
+        send(roomUnreadLine());      // tin moi trong cac phong tung vao -> so do
         server.userLoggedIn(this);   // -> moi nguoi (ke ca minh) nhan ONLINE_LIST moi
         if (register) {
             server.broadcastUserList();   // moi nguoi thay tai khoan moi trong cot "Moi nguoi"
@@ -350,6 +353,10 @@ public class ClientHandler implements Runnable {
         room.broadcast(Protocol.build(Protocol.USER_JOINED, room.getName(), username), this);
         server.log(username + " vao phong '" + room.getName() + "'");
         server.broadcastRoomList();
+        // Vao phong = da doc het tin cua phong (lan dau vao: tro thanh thanh vien de dem tin chua doc)
+        server.safeStore(() -> server.store().markRoomRead(username, room.getName()));
+        broadcastRoomSeen(room);
+        send(roomUnreadLine());
     }
 
     private void handleLeave(String[] p) {
@@ -386,8 +393,65 @@ public class ClientHandler implements Runnable {
             server.safeStore(() -> server.store().saveMessage(msg));
             room.broadcast(Protocol.build(Protocol.MSG, msg.room(), msg.sender(), msg.timestamp(), msg.content()),
                     null); // gui ca nguoi gui de hien thi gio chuan cua server
+            afterRoomMessage(room);
         }
         server.log("[" + room.getName() + "] " + username + ": " + content);
+    }
+
+    /**
+     * Sau moi tin moi trong phong: nguoi gui coi nhu da doc, "Da xem" cua phong ve rong
+     * (nguoi dang xem se gui ROOM_READ ngay sau do), thanh vien khong o trong phong nhan so do moi.
+     */
+    private void afterRoomMessage(Room room) {
+        server.safeStore(() -> server.store().markRoomRead(username, room.getName()));
+        broadcastRoomSeen(room);
+        List<String> members = List.of();
+        try {
+            members = server.store().loadRoomMembers(room.getName());
+        } catch (RuntimeException e) {
+            server.log("Loi doc thanh vien phong: " + e.getMessage());
+        }
+        for (String m : members) {
+            ClientHandler h = server.findUser(m);
+            if (h != null && h != this && h.currentRoom != room) {
+                h.send(h.roomUnreadLine());
+            }
+        }
+    }
+
+    /** ROOM_SEEN|phong|ten1|ten2... cho nhung nguoi dang o trong phong. */
+    private void broadcastRoomSeen(Room room) {
+        List<Object> fields = new ArrayList<>();
+        fields.add(room.getName());
+        try {
+            fields.addAll(server.store().loadRoomSeen(room.getName()));
+        } catch (RuntimeException e) {
+            server.log("Loi doc danh sach da xem: " + e.getMessage());
+        }
+        room.broadcast(Protocol.build(Protocol.ROOM_SEEN, fields.toArray()), null);
+    }
+
+    /** ROOM_READ|phong : minh dang xem phong, da doc het -> cap nhat "Da xem" cho ca phong. */
+    private void handleRoomRead(String[] p) {
+        Room room = server.rooms().get(field(p, 1).trim());
+        if (room == null) {
+            return;
+        }
+        server.safeStore(() -> server.store().markRoomRead(username, room.getName()));
+        if (room == currentRoom) {
+            broadcastRoomSeen(room);
+        }
+    }
+
+    /** ROOM_UNREAD_LIST|Phong chung:3|Nhom A:1 */
+    private String roomUnreadLine() {
+        List<Object> fields = new ArrayList<>();
+        try {
+            server.store().countRoomUnread(username).forEach((r, n) -> fields.add(r + ":" + n));
+        } catch (RuntimeException e) {
+            server.log("Loi dem tin chua doc cua phong: " + e.getMessage());
+        }
+        return Protocol.build(Protocol.ROOM_UNREAD_LIST, fields.toArray());
     }
 
     private void handleHistory(String[] p) {
@@ -503,6 +567,10 @@ public class ClientHandler implements Runnable {
         String other = field(p, 1).trim();
         if (Protocol.isValidName(other)) {
             server.safeStore(() -> server.store().markRead(username, other));
+            ClientHandler sender = server.findUser(other);
+            if (sender != null && sender != this) {
+                sender.send(Protocol.build(Protocol.PM_SEEN, username, 1));   // ben kia hien "Da xem"
+            }
         }
     }
 
@@ -545,6 +613,13 @@ public class ClientHandler implements Runnable {
             }
         }
         send(Protocol.build(Protocol.PM_HISTORY_END, other, list.size()));
+        boolean seen = false;
+        try {
+            seen = server.store().isLastPrivateRead(username, other);
+        } catch (RuntimeException e) {
+            server.log("Loi doc trang thai da xem: " + e.getMessage());
+        }
+        send(Protocol.build(Protocol.PM_SEEN, other, seen ? 1 : 0));
     }
 
     // ================== Nhan file tu client ==================
@@ -682,6 +757,7 @@ public class ClientHandler implements Runnable {
             send(Protocol.build(Protocol.FILE_SAVED, u.transferId, u.fileId));
             room.broadcast(Protocol.build(Protocol.FILE, room.getName(), username, msg.timestamp(),
                     info.id(), info.name(), info.size()), null);
+            afterRoomMessage(room);
         }
         server.log("[" + room.getName() + "] " + username + " da gui file '" + info.name()
                 + "' (" + info.sizeText() + ")");

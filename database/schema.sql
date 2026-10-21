@@ -24,6 +24,7 @@ USE ChatNhom06;
 GO
 
 -- 2. Xoa bang cu (theo thu tu khoa ngoai: Messages truoc)
+IF OBJECT_ID(N'dbo.RoomReads', N'U') IS NOT NULL DROP TABLE dbo.RoomReads;
 IF OBJECT_ID(N'dbo.PrivateMessages', N'U') IS NOT NULL DROP TABLE dbo.PrivateMessages;
 IF OBJECT_ID(N'dbo.Messages', N'U') IS NOT NULL DROP TABLE dbo.Messages;
 IF OBJECT_ID(N'dbo.Rooms', N'U')    IS NOT NULL DROP TABLE dbo.Rooms;
@@ -94,6 +95,19 @@ CREATE TABLE dbo.PrivateMessages (
 GO
 CREATE INDEX IX_PrivateMessages_Pair ON dbo.PrivateMessages (Sender, Receiver, PmId);
 CREATE INDEX IX_PrivateMessages_Unread ON dbo.PrivateMessages (Receiver, IsRead);
+GO
+
+-- 5c. Bang RoomReads: moi nguoi da doc toi tin nao cua phong nao
+--     Dem tin chua doc cua phong (so do) va hien "Da xem: A, B" duoi tin moi nhat.
+--     Co dong = nguoi do tung vao phong (chi phong tung vao moi hien so do).
+CREATE TABLE dbo.RoomReads (
+    Username   NVARCHAR(20) NOT NULL,
+    RoomId     INT          NOT NULL,
+    LastReadId BIGINT       NOT NULL,   -- MessageId cua tin moi nhat nguoi do da doc
+    CONSTRAINT PK_RoomReads PRIMARY KEY (Username, RoomId),
+    CONSTRAINT FK_RoomReads_Rooms FOREIGN KEY (RoomId)
+        REFERENCES dbo.Rooms (RoomId) ON DELETE CASCADE
+);
 GO
 
 -- 6. Index phuc vu cau lay lich su: WHERE RoomId = ? ORDER BY MessageId DESC

@@ -76,6 +76,9 @@ import vn.hutech.nhom06.common.RoomInfo;
  *   Trai  : MOI NGUOI (moi tai khoan): online o tren (cham xanh), offline o duoi (cham xam).
  *           Bam vao 1 nguoi de nhan tin rieng - ca nguoi offline (server luu lai, ho dang nhap se thay).
  *           So do = so tin rieng chua doc, ke ca tin nhan duoc trong luc minh offline.
+ *   Phong chat cung co so do: tin moi trong cac phong minh tung vao ma minh chua xem (ke ca luc offline).
+ *   Duoi khung chat: "Da xem" (chat rieng, khi nguoi kia da xem tin cuoi minh gui)
+ *                    "Da xem: A, B" (phong, nhung ai da xem tin moi nhat).
  *   Giua  : khung chat cua phong dang o, HOAC khung chat rieng voi 1 nguoi
  *           + o nhap (Enter = gui), nut Gui file, nut Gui, thanh tien trinh gui/tai file
  *   Phai  : 2 khung tach biet
@@ -105,7 +108,10 @@ public class MainFrame extends JFrame implements ClientEventListener {
 
     // ----- Cuoc tro chuyen -----
     private transient StyledDocument roomDoc = new DefaultStyledDocument();
-    private int roomUnread;
+    private int roomUnread;                                       // phong dang o, khi dang xem chat rieng
+    private final Map<String, Integer> roomUnreadMap = new HashMap<>();   // phong khac (thuong) -> so tin chua doc (server gui)
+    private List<String> roomSeen = new ArrayList<>();            // ai da xem tin moi nhat cua phong dang o
+    private final JLabel lblSeen = new JLabel(" ");
     private final transient Map<String, Conversation> privates = new HashMap<>();   // ten thuong -> chat rieng
     private String viewingUser;          // dang xem chat rieng voi nguoi nay (null = dang xem phong)
     private final Set<String> online = new HashSet<>();   // ten thuong cua nguoi dang online
@@ -118,6 +124,8 @@ public class MainFrame extends JFrame implements ClientEventListener {
         boolean requested;       // da xin lich su
         boolean loaded;          // da nhan xong lich su
         int unread;
+        boolean lastFromMe;      // tin cuoi cung trong cuoc tro chuyen la cua minh
+        boolean seen;            // nguoi kia da xem tin cuoi minh gui
         final List<PrivateMessage> history = new ArrayList<>();   // tin lich su vua nhan (de loc trung)
         final List<PrivateMessage> pending = new ArrayList<>();   // tin moi den trong luc dang tai lich su
     }
@@ -358,10 +366,21 @@ public class MainFrame extends JFrame implements ClientEventListener {
         transferBar.add(btnCancelTransfer, BorderLayout.EAST);
         transferBar.setVisible(false);
 
-        JPanel south = new JPanel(new BorderLayout(0, 8));
+        // Dong "Da xem" ngay duoi khung chat, can phai
+        lblSeen.setName("lblSeen");
+        lblSeen.setFont(Theme.FONT_SMALL);
+        lblSeen.setForeground(Theme.MUTED);
+        lblSeen.setHorizontalAlignment(JLabel.RIGHT);
+        lblSeen.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 4));
+
+        JPanel bottom = new JPanel(new BorderLayout(0, 8));
+        bottom.setOpaque(false);
+        bottom.add(transferBar, BorderLayout.NORTH);
+        bottom.add(input, BorderLayout.CENTER);
+        JPanel south = new JPanel(new BorderLayout(0, 4));
         south.setOpaque(false);
-        south.add(transferBar, BorderLayout.NORTH);
-        south.add(input, BorderLayout.CENTER);
+        south.add(lblSeen, BorderLayout.NORTH);
+        south.add(bottom, BorderLayout.CENTER);
         p.add(south, BorderLayout.SOUTH);
         return p;
     }
@@ -566,6 +585,9 @@ public class MainFrame extends JFrame implements ClientEventListener {
     /** Hien khung chat cua phong dang o. */
     private void showRoom() {
         viewingUser = null;
+        if (roomUnread > 0 && currentRoom != null) {
+            connection.markRoomRead(currentRoom);   // quay lai xem phong -> da doc nhung tin vua den
+        }
         roomUnread = 0;
         chatPane.setDocument(roomDoc);
         scrollToEnd();
@@ -579,7 +601,32 @@ public class MainFrame extends JFrame implements ClientEventListener {
                     + "hoặc bấm vào một người bên trái để nhắn riêng");
         }
         updateState();
+        updateSeenLabel();
         txtInput.requestFocusInWindow();
+    }
+
+    /** Dong "Da xem" duoi khung chat: chat rieng -> "Da xem"; phong -> "Da xem: A, B". */
+    private void updateSeenLabel() {
+        String text = " ";
+        if (viewingUser != null) {
+            Conversation c = privates.get(key(viewingUser));
+            if (c != null && c.loaded && c.lastFromMe && c.seen) {
+                text = "✓ Đã xem";
+            }
+        } else if (currentRoom != null) {
+            List<String> names = new ArrayList<>();
+            for (String u : roomSeen) {
+                if (!u.equalsIgnoreCase(username)) {
+                    names.add(u);
+                }
+            }
+            if (!names.isEmpty()) {
+                text = "✓ Đã xem: " + (names.size() <= 3 ? String.join(", ", names)
+                        : String.join(", ", names.subList(0, 3)) + " và " + (names.size() - 3) + " người khác");
+            }
+        }
+        lblSeen.setText(text);
+        lblSeen.setToolTipText(viewingUser == null && roomSeen.size() > 3 ? String.join(", ", roomSeen) : null);
     }
 
     /** Mo khung chat rieng voi {@code user} (lan dau thi tai lich su tu server). */
@@ -600,6 +647,7 @@ public class MainFrame extends JFrame implements ClientEventListener {
         scrollToEnd();
         lblRoomTitle.setText("Tin nhắn riêng với " + user);
         updatePrivateHint();
+        updateSeenLabel();
         selectOnline(user);
         lstRooms.repaint();
         lstOnline.repaint();
@@ -878,6 +926,9 @@ public class MainFrame extends JFrame implements ClientEventListener {
         SwingUtilities.invokeLater(() -> {
             currentRoom = room;
             roomDoc = new DefaultStyledDocument();   // khung chat moi cho phong moi
+            roomSeen = new ArrayList<>();
+            roomUnread = 0;
+            roomUnreadMap.remove(key(room));          // vao phong = da doc
             memberModel.clear();
             selectRoom(room);
             showRoom();
@@ -909,10 +960,14 @@ public class MainFrame extends JFrame implements ClientEventListener {
         SwingUtilities.invokeLater(() -> {
             if (m.room().equalsIgnoreCase(currentRoom)) {
                 appendMessage(roomDoc, m.sender(), m.timestamp(), m.content(), m.file(), false);
+                roomSeen = new ArrayList<>();   // tin moi: chua ai xem (server se gui lai ROOM_SEEN)
                 if (viewingUser != null) {
                     roomUnread++;   // dang xem chat rieng -> danh dau phong co tin moi
                     lstRooms.repaint();
+                } else if (!m.sender().equalsIgnoreCase(username)) {
+                    connection.markRoomRead(currentRoom);   // dang xem phong -> da xem ngay
                 }
+                updateSeenLabel();
             }
         });
     }
@@ -958,6 +1013,7 @@ public class MainFrame extends JFrame implements ClientEventListener {
         SwingUtilities.invokeLater(() -> {
             currentRoom = null;
             roomUnread = 0;
+            roomSeen = new ArrayList<>();
             memberModel.clear();
             lblMembers.setText("Thành viên phòng (0)");
             appendSystem(roomDoc, "Bạn đã rời phòng " + room);
@@ -995,6 +1051,39 @@ public class MainFrame extends JFrame implements ClientEventListener {
     }
 
     @Override
+    public void onRoomUnreadCounts(Map<String, Integer> unread) {
+        SwingUtilities.invokeLater(() -> {
+            roomUnreadMap.clear();
+            unread.forEach((r, n) -> {
+                if (!r.equalsIgnoreCase(currentRoom)) {
+                    roomUnreadMap.put(key(r), n);
+                }
+            });
+            lstRooms.repaint();
+        });
+    }
+
+    @Override
+    public void onRoomSeen(String room, List<String> users) {
+        SwingUtilities.invokeLater(() -> {
+            if (room.equalsIgnoreCase(currentRoom)) {
+                roomSeen = new ArrayList<>(users);
+                updateSeenLabel();
+            }
+        });
+    }
+
+    @Override
+    public void onPrivateSeen(String other, boolean seen) {
+        SwingUtilities.invokeLater(() -> {
+            conversation(other).seen = seen;
+            if (other.equalsIgnoreCase(viewingUser)) {
+                updateSeenLabel();
+            }
+        });
+    }
+
+    @Override
     public void onUserList(List<String> users) {
         SwingUtilities.invokeLater(() -> {
             accounts.clear();
@@ -1025,6 +1114,11 @@ public class MainFrame extends JFrame implements ClientEventListener {
         SwingUtilities.invokeLater(() -> {
             String other = m.other(username);
             Conversation c = conversation(other);
+            boolean mine = m.sender().equalsIgnoreCase(username);
+            c.lastFromMe = mine;
+            if (mine) {
+                c.seen = false;   // tin moi minh vua gui: nguoi kia chua xem
+            }
             if (c.loaded) {
                 appendPrivate(c.doc, m, false);
             } else if (c.requested) {
@@ -1034,8 +1128,11 @@ public class MainFrame extends JFrame implements ClientEventListener {
             if (!other.equalsIgnoreCase(viewingUser)) {
                 c.unread++;
                 lstOnline.repaint();
-            } else if (!m.sender().equalsIgnoreCase(username)) {
-                connection.markPrivateRead(other);   // dang xem dung khung chat nay -> doc roi
+            } else {
+                if (!mine) {
+                    connection.markPrivateRead(other);   // dang xem dung khung chat nay -> doc roi
+                }
+                updateSeenLabel();
             }
         });
     }
@@ -1062,16 +1159,20 @@ public class MainFrame extends JFrame implements ClientEventListener {
             } else {
                 append(c.doc, "── " + count + " tin nhắn trước đó ──\n", styDivider);
             }
+            PrivateMessage last = c.history.isEmpty() ? null : c.history.get(c.history.size() - 1);
             for (PrivateMessage m : c.pending) {
                 if (!c.history.contains(m)) {
                     appendPrivate(c.doc, m, false);
+                    last = m;
                 }
             }
+            c.lastFromMe = last != null && last.sender().equalsIgnoreCase(username);
             c.pending.clear();
             c.history.clear();
             c.loaded = true;
             if (chatPane.getDocument() == c.doc) {
                 scrollToEnd();
+                updateSeenLabel();
             }
         });
     }
@@ -1268,7 +1369,7 @@ public class MainFrame extends JFrame implements ClientEventListener {
             name.setFont(here ? Theme.FONT_BOLD : Theme.FONT);
             name.setForeground(here ? Theme.PRIMARY : Theme.TEXT);
             count.setText(r.memberCount() + " người");
-            badge.setCount(here ? roomUnread : 0);
+            badge.setCount(here ? roomUnread : roomUnreadMap.getOrDefault(key(r.name()), 0));
             right.setBorder(BorderFactory.createEmptyBorder(9, 0, 0, 0));
             row.setBackground(viewing || selected ? Theme.PRIMARY_LIGHT : Theme.BG);
             row.setBorder(BorderFactory.createCompoundBorder(

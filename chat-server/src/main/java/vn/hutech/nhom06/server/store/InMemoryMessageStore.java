@@ -23,6 +23,8 @@ public class InMemoryMessageStore implements MessageStore {
     private final Map<String, Account> accounts = new ConcurrentHashMap<>();             // ten thuong -> tai khoan
     // nguoi nhan (thuong) -> (nguoi gui -> so tin chua doc)
     private final Map<String, Map<String, Integer>> unread = new ConcurrentHashMap<>();
+    // phong (thuong) -> (nguoi (ten goc) -> so tin da doc, tuc vi tri tin cuoi da doc)
+    private final Map<String, Map<String, Integer>> roomReads = new ConcurrentHashMap<>();
 
     @Override
     public List<String> loadRoomNames() {
@@ -99,6 +101,83 @@ public class InMemoryMessageStore implements MessageStore {
         if (m != null) {
             m.keySet().removeIf(s -> s.equalsIgnoreCase(sender));
         }
+    }
+
+    @Override
+    public boolean isLastPrivateRead(String sender, String receiver) {
+        List<PrivateMessage> list = privates.get(pairKey(sender, receiver));
+        if (list == null) {
+            return false;
+        }
+        boolean sent;
+        synchronized (list) {
+            sent = list.stream().anyMatch(m -> m.sender().equalsIgnoreCase(sender));
+        }
+        Map<String, Integer> m = unread.get(key(receiver));
+        boolean pending = m != null && m.keySet().stream().anyMatch(s -> s.equalsIgnoreCase(sender));
+        return sent && !pending;
+    }
+
+    @Override
+    public void markRoomRead(String user, String room) {
+        List<ChatMessage> list = messages.get(key(room));
+        int n = list == null ? 0 : list.size();
+        Map<String, Integer> reads = roomReads.computeIfAbsent(key(room), k -> new ConcurrentHashMap<>());
+        reads.keySet().removeIf(u -> u.equalsIgnoreCase(user) && !u.equals(user));
+        reads.put(user, n);
+    }
+
+    @Override
+    public Map<String, Integer> countRoomUnread(String user) {
+        Map<String, Integer> result = new java.util.TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        for (Map.Entry<String, Map<String, Integer>> e : roomReads.entrySet()) {
+            Integer read = null;
+            for (Map.Entry<String, Integer> r : e.getValue().entrySet()) {
+                if (r.getKey().equalsIgnoreCase(user)) {
+                    read = r.getValue();
+                }
+            }
+            List<ChatMessage> list = messages.get(e.getKey());
+            if (read == null || list == null) {
+                continue;
+            }
+            int count = 0;
+            synchronized (list) {
+                for (int i = read; i < list.size(); i++) {
+                    if (!list.get(i).sender().equalsIgnoreCase(user)) {
+                        count++;
+                    }
+                }
+            }
+            if (count > 0) {
+                result.put(rooms.getOrDefault(e.getKey(), e.getKey()), count);
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public List<String> loadRoomSeen(String room) {
+        List<ChatMessage> list = messages.get(key(room));
+        Map<String, Integer> reads = roomReads.get(key(room));
+        if (list == null || list.isEmpty() || reads == null) {
+            return List.of();
+        }
+        int size;
+        String lastSender;
+        synchronized (list) {
+            size = list.size();
+            lastSender = list.get(size - 1).sender();
+        }
+        return reads.entrySet().stream()
+                .filter(e -> e.getValue() >= size && !e.getKey().equalsIgnoreCase(lastSender))
+                .map(Map.Entry::getKey).sorted(String.CASE_INSENSITIVE_ORDER).toList();
+    }
+
+    @Override
+    public List<String> loadRoomMembers(String room) {
+        Map<String, Integer> reads = roomReads.get(key(room));
+        return reads == null ? List.of() : new ArrayList<>(reads.keySet());
     }
 
     @Override
